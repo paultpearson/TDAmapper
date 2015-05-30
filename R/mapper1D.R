@@ -30,11 +30,11 @@
 #' @export
 #'
 mapper1D <- function(
-  distance_matrix,
-  filter_values,
-  num_intervals,
-  percent_overlap,
-  num_bins_when_clustering
+  distance_matrix = dist( data.frame( x = 2*cos(0.5*(1:100)), y = sin(1:100) ) ),
+  filter_values = 2*cos(0.5*(1:100)),
+  num_intervals = 10,
+  percent_overlap = 50,
+  num_bins_when_clustering = 10
   ) {
     UseMethod("mapper1D")
   }
