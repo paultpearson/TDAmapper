@@ -30,8 +30,8 @@
 #' @export
 #'
 mapper1D <- function(
-  distance_matrix = dist( data.frame( x = 2*cos(0.5*(1:100)), y = sin(1:100) ) ),
-  filter_values = 2*cos(0.5*(1:100)),
+  distance_matrix,
+  filter_values,
   num_intervals = 10,
   percent_overlap = 50,
   num_bins_when_clustering = 10
@@ -40,8 +40,8 @@ mapper1D <- function(
   }
 
 mapper1D.default <- function(
-  distance_matrix = dist( data.frame( x = 2*cos(0.5*(1:100)), y = sin(1:100) ) ),
-  filter_values = 2*cos(0.5*(1:100)),
+  distance_matrix,
+  filter_values,
   num_intervals = 10,
   percent_overlap = 50,
   num_bins_when_clustering = 10
