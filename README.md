@@ -98,8 +98,8 @@ These are some notes by the package author to himself about the package creation
 
     R>setwd("C:/research/TDAmapper")
     R>devtools::document()
-	C:\research>"C:\Program Files\R\R-3.2.0\bin\R.exe" CMD build TDAMapper
-    C:\research>"C:\Program Files\R\R-3.2.0\bin\R.exe" CMD check TDAmapper_0.0.0.9000.tar.gz --as-cran
+	C:\research>"C:\Program Files\R\R-devel\bin\x64\R.exe" CMD build TDAmapper
+	C:\research>"C:\Program Files\R\R-devel\bin\x64\R.exe" CMD check TDAmapper_1.0.tar.gz --as-cran
     C:\research>"C:\Program Files\R\R-3.2.0\bin\R.exe" CMD INSTALL TDAmapper_0.0.0.9000.tar.gz
 	C:\research>"C:\Program Files\R\R-3.2.0\bin\R.exe" CMD Rd2pdf TDAmapper
 	
