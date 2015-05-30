@@ -1,0 +1,27 @@
+Package: TDAmapper
+Title: Analyze High-Dimensional Data Using Discrete Morse Theory
+Version: 0.0.0.9000
+Date: 2015-05-26
+Authors@R: c(person("Paul", "Pearson", email = "pearsonp@hope.edu", 
+    role = c("aut", "cre","trl")), person("Daniel", "Muellner", 
+    role = c("aut","ctb")), person("Gurjeet","Singh", role = c("aut","ctb")))
+Author: Paul Pearson [aut, cre, trl],
+    Daniel Muellner [aut, ctb],
+	Gurjeet Singh [aut, ctb]
+Maintainer: Paul Pearson <pearsonp@hope.edu>
+Description: Topological Data Analysis using Mapper (discrete Morse theory).
+    Generate a 1-dimensional simplicial complex from a filter 
+    function defined on the data:  1. Define a filter function (lens) on the 
+    data.  2. Perform clustering within within each level set and generate 
+    one node (vertex) for each cluster.  3. For each pair of clusters in 
+    adjacent level sets with a nonempty intersection, generate one edge 
+    between vertices.  The function mapper1D uses a filter function with
+    codomain R, while the the function mapper2D uses a filter function with
+    codomain R^2.
+Depends: R (>= 3.1.2)
+Imports: igraph
+Suggests: fastcluster
+License: GPL-3 + file LICENSE
+LazyData: true
+URL: https://github.com/paultpearson/TDAmapper/
+BugReports: https://github.com/paultpearson/TDAmapper/issues
