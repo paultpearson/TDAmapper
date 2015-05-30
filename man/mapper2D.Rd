@@ -4,9 +4,9 @@
 \alias{mapper2D}
 \title{mapper2D function}
 \usage{
-mapper2D(distance_matrix = dist(data.frame(x = 2 * cos(0.5 * (1:100)), y =
-  sin(1:100))), filter_values = list(2 * cos(0.5 * (1:100)), sin(1:100)),
-  num_intervals = c(10, 10), percent_overlap = 50,
+mapper2D(distance_matrix = dist(data.frame(x = 2 * cos(1:100), y =
+  sin(1:100))), filter_values = list(2 * cos(1:100), sin(1:100)),
+  num_intervals = c(5, 5), percent_overlap = 50,
   num_bins_when_clustering = 10)
 }
 \arguments{
@@ -27,14 +27,16 @@ An object of class \code{TDAmapper} which is a list of items named \code{adjacen
 This function uses a filter function f: X -> R^2 on a data set X that has n rows (observations) and k columns (variables).
 }
 \examples{
-m <- mapper2D(
-       distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
-       filter_values = list( 2*cos(0.5*(1:100)), sin(1:100) ),
-       num_intervals = c(10,10),
+m2 <- mapper2D(
+       distance_matrix = dist(data.frame( x=2*cos(1:100), y=sin(1:100) )),
+       filter_values = list( 2*cos(1:100), sin(1:100) ),
+       num_intervals = c(5,5),
        percent_overlap = 50,
        num_bins_when_clustering = 10)
 \dontrun{
-plot(m)
+library(igraph)
+g2 <- graph.adjacency(m2$adjacency, mode="undirected")
+plot(g2, layout = layout.auto(g2) )
 }
 }
 \author{

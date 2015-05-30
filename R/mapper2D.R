@@ -16,31 +16,23 @@
 #' @keywords mapper2D
 #'
 #' @examples
-#' m <- mapper2D(
-#'        distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
-#'        filter_values = list( 2*cos(0.5*(1:100)), sin(1:100) ),
-#'        num_intervals = c(10,10),
+#' m2 <- mapper2D(
+#'        distance_matrix = dist(data.frame( x=2*cos(1:100), y=sin(1:100) )),
+#'        filter_values = list( 2*cos(1:100), sin(1:100) ),
+#'        num_intervals = c(5,5),
 #'        percent_overlap = 50,
 #'        num_bins_when_clustering = 10)
 #' \dontrun{
-#' plot(m)
+#' library(igraph)
+#' g2 <- graph.adjacency(m2$adjacency, mode="undirected")
+#' plot(g2, layout = layout.auto(g2) )
 #' }
 #' @export
 #'
 mapper2D <- function(
-  distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
-  filter_values = list( 2*cos(0.5*(1:100)), sin(1:100) ),
-  num_intervals = c(10,10),
-  percent_overlap = 50,
-  num_bins_when_clustering = 10
-  ) {
-    UseMethod("mapper2D")
-  }
-
-mapper2D.default <- function(
-  distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
-  filter_values = list( 2*cos(0.5*(1:100)), sin(1:100) ),
-  num_intervals = c(10,10),
+  distance_matrix = dist(data.frame( x=2*cos(1:100), y=sin(1:100) )),
+  filter_values = list( 2*cos(1:100), sin(1:100) ),
+  num_intervals = c(5,5),
   percent_overlap = 50,
   num_bins_when_clustering = 10
   ) {

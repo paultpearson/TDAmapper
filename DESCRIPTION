@@ -19,8 +19,7 @@ Description: Topological Data Analysis using Mapper (discrete Morse theory).
     codomain R, while the the function mapper2D uses a filter function with
     codomain R^2.
 Depends: R (>= 3.1.2)
-Imports: igraph
-Suggests: fastcluster
+Suggests: fastcluster, igraph
 License: GPL-3 + file LICENSE
 LazyData: true
 URL: https://github.com/paultpearson/TDAmapper/

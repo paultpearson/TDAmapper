@@ -4,7 +4,9 @@
 \alias{mapper1D}
 \title{mapper1D function}
 \usage{
-mapper1D(distance_matrix, filter_values, num_intervals, percent_overlap, num_bins_when_clustering)
+mapper1D(distance_matrix = dist(data.frame(x = 2 * cos(0.5 * (1:100)), y =
+  sin(1:100))), filter_values = 2 * cos(0.5 * (1:100)), num_intervals = 10,
+  percent_overlap = 50, num_bins_when_clustering = 10)
 }
 \arguments{
 \item{distance_matrix}{An n x n matrix of pairwise dissimilarities.}
@@ -24,14 +26,17 @@ An object of class \code{TDAmapper} which is a list of items named \code{adjacen
 This function uses a filter function f: X -> R on a data set X that has n rows (observations) and k columns (variables).
 }
 \examples{
-m <- mapper1D(
+m1 <- mapper1D(
        distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
        filter_values = 2*cos(0.5*(1:100)),
        num_intervals = 10,
        percent_overlap = 50,
        num_bins_when_clustering = 10)
 \dontrun{
-plot(m)
+#install.packages("igraph")
+library(igraph)
+g1 <- graph.adjacency(m1$adjacency, mode="undirected")
+plot(g1, layout = layout.auto(g1) )
 }
 }
 \author{
