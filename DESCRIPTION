@@ -1,6 +1,6 @@
 Package: TDAmapper
 Title: Analyze High-Dimensional Data Using Discrete Morse Theory
-Version: 0.0.0.9000
+Version: 1.0
 Date: 2015-05-26
 Authors@R: c(person("Paul", "Pearson", email = "pearsonp@hope.edu", 
     role = c("aut", "cre","trl")), person("Daniel", "Muellner", 
@@ -20,7 +20,7 @@ Description: Topological Data Analysis using Mapper (discrete Morse theory).
     codomain R^2.
 Depends: R (>= 3.1.2)
 Suggests: fastcluster, igraph
-License: GPL-3 + file LICENSE
+License: GPL-3
 LazyData: true
 URL: https://github.com/paultpearson/TDAmapper/
 BugReports: https://github.com/paultpearson/TDAmapper/issues
