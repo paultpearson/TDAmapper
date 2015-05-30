@@ -23,6 +23,10 @@ To install from Github you might need:
 - **OS X:** xcode (from the app store)
 - **Linux:** apt-get install r-base-dev (or similar).
 
+To install the stable version of this R package from CRAN:
+
+    install.packages("TDAmapper")
+
 	
 ## Example 1: Using mapper1D to identify a figure 8
 
