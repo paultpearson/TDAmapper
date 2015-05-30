@@ -24,7 +24,7 @@ An object of class \code{TDAmapper} which is a list of items named \code{adjacen
 This function uses a filter function f: X -> R on a data set X that has n rows (observations) and k columns (variables).
 }
 \examples{
-m <- mapper1D <- function(
+m <- mapper1D(
        distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
        filter_values = 2*cos(0.5*(1:100)),
        num_intervals = 10,

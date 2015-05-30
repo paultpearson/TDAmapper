@@ -16,7 +16,7 @@
 #' @keywords mapper2D
 #'
 #' @examples
-#' m <- mapper2D <- function(
+#' m <- mapper2D(
 #'        distance_matrix = dist(data.frame( x=2*cos(0.5*(1:100)), y=sin(1:100) )),
 #'        filter_values = list( 2*cos(0.5*(1:100)), sin(1:100) ),
 #'        num_intervals = c(10,10),
