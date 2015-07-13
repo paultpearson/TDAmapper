@@ -115,7 +115,7 @@ To install from Github you might need:
     tkplot(g4)
     
 
-# Interactive graphs using networkD3
+# Example 5: Interactive graphs using networkD3
 
 The networkD3 graphs have mouseover effects.
 
