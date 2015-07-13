@@ -91,6 +91,64 @@ To install from Github you might need:
     g3 <- graph.adjacency(m3$adjacency, mode="undirected")
     plot(g3, layout = layout.auto(g3) )
 
+
+# Example 4: Interactive 2D graphs using tkplot from igraph
+
+    # parametrize a trefoil knot
+    n <- 100
+    t <- 2*pi*(1:n)/n
+    X <- data.frame(x = sin(t)+2*sin(2*t),
+                    y = cos(t)-2*cos(2*t),
+                    z = -sin(3*t))
+    f <- X
+
+    library(rgl)
+    plot3d(X$x, X$y, X$z)
+
+    # library(igraph)
+
+    m4 <- mapper(dist(X), f[,1], 5, 50, 5)
+    g4 <- graph.adjacency(m4$adjacency, mode="undirected")
+    plot(g4, layout = layout.auto(g4) )
+    m4$points_in_vertex
+    
+    tkplot(g4)
+    
+
+# Interactive graphs using networkD3
+
+The networkD3 graphs have mouseover effects.
+
+    # use the github version so that vertices stay on the canvas
+    library(devtools)
+    devtools::install_github("christophergandrud/networkD3")
+    library(networkD3)
+
+    # parametrize a trefoil knot
+    n <- 100
+    t <- 2*pi*(1:n)/n
+    X <- data.frame(x = sin(t)+2*sin(2*t),
+                    y = cos(t)-2*cos(2*t),
+                    z = -sin(3*t))
+    f <- X
+
+    m5 <- mapper(dist(X), f, c(3,3,3), c(30,30,30), 5)
+    g5 <- graph.adjacency(m5$adjacency, mode="undirected")
+    plot(g5, layout = layout.auto(g5) )
+    tkplot(g5)
+
+    # create data frames for vertices and edges with the right variable names 
+    MapperNodes <- mapperVertices(m5, 1:dim(f)[1] )
+    MapperLinks <- mapperEdges(m5)
+
+    # interactive plot
+    forceNetwork(Nodes = MapperNodes, Links = MapperLinks, 
+                Source = "Linksource", Target = "Linktarget",
+                Value = "Linkvalue", NodeID = "Nodename",
+                Group = "Nodegroup", opacity = 0.8, 
+                linkDistance = 10, charge = -400)    
+    
+
 	
 # Author's notes to himself (you can ignore this section)
 
