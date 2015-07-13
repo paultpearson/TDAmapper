@@ -112,6 +112,7 @@ To install from Github you might need:
     plot(g4, layout = layout.auto(g4) )
     m4$points_in_vertex
     
+    library(igraph)
     tkplot(g4)
     
 
