@@ -1,0 +1,632 @@
+---
+title: "Mapper HD"
+author: "Paul Pearson"
+date: "July 2, 2015"
+output: html_document
+---
+
+# level set flat index to level set multi-index function
+
+
+```{r}
+# We want to flatten out our indexing so that we have just one for loop.
+# For instance, if num_intervals = c(3,2), then we want a function that
+# will associate a flat index with a multi-index (i,j) as follows: 
+# 1 --> (1,1),  4 --> (1,2)
+# 2 --> (2,1),  5 --> (2,2)
+# 3 --> (3,1),  6 --> (3,2)
+# and generalize well to arbitrary length multi-indices.  Basically, we
+# want to generalize this using a function instead of a list:
+#    multi_index <- list( x=rep(1:3, times=2),
+#                         y=rep(1:2, each =3) )
+#    print(multi_index)
+
+
+# function from the level set flat index (lsfi) to the level set multi-index (lsmi)
+lsmi_from_lsfi <- function( lsfi, num_intervals ) {
+    # inputs:
+    # lsfi = an integer in the range 1:prod(v)
+    # num_intervals = c(i1,i1,...) a vector of numbers of intervals
+    # output:
+    # f+1 = a vector of multiindices with length filter_output_dim
+    j <- c(1,num_intervals) # put 1 in front to make indexing easier in the product prod(j[1:k])
+    f <- c()
+    for (k in 1:length(num_intervals)) {
+        # use lsfi-1 to shift from 1-based indexing to 0-based indexing
+        f[k] <- floor( (lsfi-1) / prod(j[1:k])) %% num_intervals[k]
+    }
+    #print(f+1)
+    # lsmi = f+1 = level set multi index
+    return(f+1) # shift from 0-based indexing back to 1-based indexing
+}
+
+# the inverse function
+lsfi_from_lsmi <- function( lsmi, num_intervals ) {
+	lsfi <- lsmi[1]
+	if (length(num_intervals) > 1) {
+		for (i in 2:length(num_intervals)) {
+			lsfi <- lsfi + prod(num_intervals[1:(i-1)]) * (lsmi[i]-1)
+		}
+	}
+	return(lsfi)
+}
+```
+
+# lsmi_from_lsfi test case
+
+```{r}
+v <- c(2,3,4)
+for (i in 1:prod(v)) {
+    m <- lsmi_from_lsfi(i,v)
+    print( i )
+    print( m )
+    print( lsfi_from_lsmi(m,v) )
+}
+```
+
+# cluster cutoff at first empty bin function
+
+```{r}
+cluster_cutoff_at_first_empty_bin <- function(heights, diam, num_bins_when_clustering) {
+  
+  # if there are only two points (one height value), then we have a single cluster
+  if (length(heights) == 1) {
+    if (heights == diam) {
+      cutoff <- Inf
+      return(cutoff)
+    }
+  }
+  
+  bin_breaks <- seq(from=min(heights), to=diam, 
+                    by=(diam - min(heights))/num_bins_when_clustering)
+  myhist <- hist(c(heights,diam), breaks=bin_breaks, plot=FALSE)
+  z <- (myhist$counts == 0)
+  if (sum(z) == 0) {
+    cutoff <- Inf
+    return(cutoff)
+  } else {
+    #  which returns the indices of the logical vector (z == TRUE), min gives the smallest index
+    cutoff <- myhist$mids[ min(which(z == TRUE)) ]
+    return(cutoff)
+  }
+  
+}
+```
+
+# mapper function
+
+```{r}
+mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, num_bins_when_clustering) {
+##### begin documentation ############
+# inputs
+# f : X \subset R^n \to R^k, a filter function on a data set with numpoints observations
+# filter_values = data.frame(y_1, y_2,..., y_k), where each y_i is a vector of length num_points
+# num_intervals = c(i_1, i_2,..., i_k), a vector of number of intervals for each variable y_i
+# percent_overlap = c(p_1, p_2,..., p_k), a vector of percent overlap for adjacent intervals within each variable y_i
+##### end documentation ###############
+
+    
+#     #filter_output_dim <- length(filter_values)
+#     if (length(num_intervals) == 1) {
+#         num_points <- length(filter_values)
+#         filter_output_dim <- 1
+#         num_levelsets <- num_intervals
+# 
+#         # define some vectors of length k = number of columns = number of variables
+#         filter_min <- min(filter_values)
+#         filter_max <- max(filter_values)
+#         interval_width <- (filter_max - filter_min) / num_intervals
+# 
+#         } else {
+# #    filter_values <- as.matrix(filter_values)
+#         num_points <- dim(filter_values)[1] # number of rows = number of observations 
+#         filter_output_dim <- dim(filter_values)[2] # number of columns = number of variables = length(num_intervals)
+#         num_levelsets <- prod(num_intervals)
+#         
+#         # define some vectors of length k = number of columns = number of variables
+#         filter_min <- as.vector(sapply(filter_values,min))
+#         filter_max <- as.vector(sapply(filter_values,max))
+#         interval_width <- (filter_max - filter_min) / num_intervals
+# 
+#    }
+    
+    # class(filter_values[,1]) = numeric, which has dim(filter_values[,1]) = NULL,
+    # so we coerce filter_values to a data.frame so that its dim is not NULL
+    filter_values <- data.frame(filter_values) 
+    num_points <- dim(filter_values)[1] # number of rows = number of observations 
+    filter_output_dim <- dim(filter_values)[2] # number of columns = number of variables = length(num_intervals)
+    num_levelsets <- prod(num_intervals)
+        
+    # define some vectors of length k = number of columns = number of variables
+    filter_min <- as.vector(sapply(filter_values,min))
+    filter_max <- as.vector(sapply(filter_values,max))
+    interval_width <- (filter_max - filter_min) / num_intervals
+    
+
+    # initialize variables    
+    vertex_index <- 0
+    level_of_vertex <- c()
+    points_in_vertex <- list()
+    points_in_level_set <- vector( "list", num_levelsets )
+    vertices_in_level_set <- vector( "list", num_levelsets )
+    # for future development
+    # cutree_in_level_set <- vector( "list", num_levelsets )
+
+    
+#### begin plot the filter function ##############
+#     # Reality check
+#     # Plot the filter values
+#     plot(filter_values[,1], filter_values[,2], type="n")
+#     # cex = font size as a proportion of default
+#     text(filter_values[,1], filter_values[,2], labels=1:num_points, cex=0.5) 
+#     # midpoint of overlapping intervals
+#     abline(v = filter_min[1]+interval_width[1]*(0:num_intervals[1]), 
+#            h = filter_min[2]+interval_width[2]*(0:num_intervals[2]), col="red")
+#     # left and right interval boundaries
+#     abline(v = filter_min[1]+interval_width[1]*(0:num_intervals[1])
+#            -0.5*interval_width[1]*percent_overlap[1]/100, col = "blue", lty = 3)
+#     abline(v = filter_min[1]+interval_width[1]*(0:num_intervals[1])
+#            +0.5*interval_width[1]*percent_overlap[1]/100, 
+#            col = "blue", lty = 3)
+#     # bottom and top interval boundaries
+#     abline(h = filter_min[2]+interval_width[2]*(0:num_intervals[2])
+#            -0.5*interval_width[2]*percent_overlap[2]/100, col = "blue", lty = 3)
+#     abline(h = filter_min[2]+interval_width[2]*(0:num_intervals[2])
+#            +0.5*interval_width[1]*percent_overlap[2]/100, 
+#            col = "blue", lty = 3)
+#### end plot the filter function ########## 
+    
+
+
+    # begin loop through all level sets
+    for (lsfi in 1:num_levelsets) {
+
+        ################################
+        # begin covering
+        
+        # level set flat index (lsfi), which is a number, has a corresponding 
+        # level set multi index (lsmi), which is a vector
+        lsmi <- lsmi_from_lsfi( lsfi, num_intervals )
+
+        lsfmin <- filter_min + (lsmi - 1) * interval_width - 0.5 * interval_width * percent_overlap/100
+        lsfmax <- lsfmin + interval_width + interval_width * percent_overlap/100
+
+        # begin loop through all the points and assign them to level sets
+        for (point_index in 1:num_points) {
+            # compare two logical vectors and get a logical vector, 
+            # then check if all entries are true
+            if ( all( lsfmin <= filter_values[point_index,] & 
+                      filter_values[point_index,] <= lsfmax ) ) {
+                points_in_level_set[[lsfi]] <- c( points_in_level_set[[lsfi]], 
+                                                  point_index )
+            }
+        } 
+        # end loop through all the points and assign them to level sets
+        
+        # end covering
+        ######################################
+
+        ######################################
+        # begin clustering
+        
+        points_in_this_level <- points_in_level_set[[lsfi]]
+        num_points_in_this_level <- length(points_in_level_set[[lsfi]])
+        
+        if (num_points_in_this_level == 0) {
+            num_vertices_in_this_level <- 0
+        }
+        
+        if (num_points_in_this_level == 1) {
+            #warning('Level set has only one point')
+            num_vertices_in_this_level <- 1
+            level_internal_indices <- c(1)
+            level_external_indices <- points_in_level_set[[lsfi]]
+        }
+        
+        if (num_points_in_this_level > 1) {
+            # heirarchical clustering
+            level_dist_object <- as.dist(
+                as.matrix(dist_object)[points_in_this_level,points_in_this_level])
+            level_max_dist <- max(level_dist_object)
+            level_hclust   <- hclust( level_dist_object, method="single" )
+            level_heights  <- level_hclust$height
+            
+            # cut the cluster tree
+            # internal indices refers to 1:num_points_in_this_level
+            # external indices refers to the row number of the original data point
+            level_cutoff   <- cluster_cutoff_at_first_empty_bin(level_heights, level_max_dist, num_bins_when_clustering)
+            level_external_indices <- points_in_this_level[level_hclust$order]
+            level_internal_indices <- as.vector(cutree(list(
+                merge = level_hclust$merge, 
+                height = level_hclust$height,
+                labels = level_external_indices), 
+                h=level_cutoff))
+            num_vertices_in_this_level <- max(level_internal_indices)
+            
+        }
+    
+        # end clustering
+        ######################################
+        
+        ######################################
+        # begin vertex construction
+        
+        # check admissibility condition
+        if (num_vertices_in_this_level > 0) { 
+        
+            vertices_in_level_set[[lsfi]] <- vertex_index + (1:num_vertices_in_this_level)
+        
+            for (j in 1:num_vertices_in_this_level) {
+                
+                vertex_index <- vertex_index + 1
+                level_of_vertex[vertex_index] <- lsfi
+                points_in_vertex[[vertex_index]] <- level_external_indices[level_internal_indices == j]
+            
+            }
+        }
+        
+        # end vertex construction
+        ######################################
+
+    } # end loop through all level sets
+    
+    
+    ########################################
+    #  begin simplicial complex
+    
+    # create empty adjacency matrix
+    adja <- mat.or.vec(vertex_index, vertex_index)
+    
+    # loop through all level sets
+    for (lsfi in 1:num_levelsets) {
+        
+        # get the level set multi-index from the level set flat index
+        lsmi <- lsmi_from_lsfi(lsfi,num_intervals)
+        
+        # Find adjacent level sets +1 of each entry in lsmi 
+        # (within bounds of num_intervals, of course).
+        # Need the inverse function lsfi_from_lsmi to do this easily.
+        for (k in 1:filter_output_dim) {
+            
+            # check admissibility condition is met
+            if (lsmi[k] < num_intervals[k]) {
+                lsmi_adjacent <- lsmi + diag(filter_output_dim)[,k]
+                lsfi_adjacent <- lsfi_from_lsmi(lsmi_adjacent, num_intervals)
+            } else { next }
+            
+            # check admissibility condition is met
+            if (length(vertices_in_level_set[[lsfi]]) < 1 |
+                length(vertices_in_level_set[[lsfi_adjacent]]) < 1) { next }
+            
+            # construct adjacency matrix
+            for (v1 in vertices_in_level_set[[lsfi]]) {
+                for (v2 in vertices_in_level_set[[lsfi_adjacent]]) {
+                    adja[v1,v2] <- (length(intersect(
+                        points_in_vertex[[v1]],
+                        points_in_vertex[[v2]])) > 0)
+                    adja[v2,v1] <- adja[v1,v2]
+                }
+            }
+
+        }
+        
+        
+    }
+    
+    #  end simplicial complex
+    #######################################
+    
+    mapperoutput <- list(adjacency = adja,
+                         num_vertices = vertex_index,
+                         level_of_vertex = level_of_vertex,
+                         points_in_vertex = points_in_vertex,
+                         points_in_level_set = points_in_level_set,
+                         vertices_in_level_set = vertices_in_level_set
+                         )
+
+    class(mapperoutput) <- "TDAmapper"
+    
+    return(mapperoutput)
+    
+    
+} # end mapper function
+
+
+
+
+#####################################
+#     filter_min <- c()
+#     filter_max <- c()
+#     interval_width <- c()
+#     for (j in 1:filter_output_dim) {
+#         filter_min[j] <- min(filter_values[,j])
+#         filter_max[j] <- max(filter_values[,j])
+#         interval_width[j] <- (filter_max[j] - filter_min[j]) / num_intervals[j]
+#         # adjacent_overlap_width[i] <- interval_width[i] * 0.5 * percent_overlap[i]/100
+#     }
+# 
+#     print("==============")
+#     print(filter_min)
+#     print(filter_max)
+#     print(interval_width)
+
+
+#         # construct the interval boundaries 
+#         lsfmin <- rep(NA,filter_output_dim)
+#         lsfmax <- rep(NA,filter_output_dim)
+#         for (j in 1:filter_output_dim) {
+#             lsfmin[j] <- filter_min[j] + (lsmi[j] - 1) * interval_width[j] - interval_width[j] * 0.5 * percent_overlap[j]/100
+#             lsfmax[j] <- filter_min[j] + lsmi[j] * interval_width[j] + interval_width[j] * 0.5 * percent_overlap[j]/100
+#             # print(paste(lsfmin[j], lsfmax[j]))
+#         }
+
+##############################
+
+```
+
+
+
+
+
+
+
+# test case
+
+```{r}
+X <- data.frame( x = 2*cos(2*pi*(1:100)/100), y = sin(2*pi*(1:100)/100) )
+#f <- list( X$x, X$y )
+f <- X
+
+#range(f[[1]])
+#range(f[[2]])
+m2 <- mapper(dist(X), f, c(3,2), c(50,50), 5)
+
+m2
+
+library(igraph)
+ 
+g2 <- graph.adjacency(m2$adjacency, mode="undirected")
+plot(g2, layout = layout.auto(g2) )
+```
+
+
+# test case: a trefoil knot
+
+```{r}
+# parametrize a trefoil knot
+n <- 100
+t <- 2*pi*(1:n)/n
+X <- data.frame(x = sin(t)+2*sin(2*t),
+                y = cos(t)-2*cos(2*t),
+                z = -sin(3*t))
+f <- X
+
+# library(rgl)
+# plot3d(X$x, X$y, X$z)
+# 
+
+#library(igraph)
+
+m1 <- mapper(dist(X), f[,1], 5, 50, 5)
+g1 <- graph.adjacency(m1$adjacency, mode="undirected")
+plot(g1, layout = layout.auto(g1) )
+m1$points_in_vertex
+
+
+m2 <- mapper(dist(X), f[,1:2], c(4,4), c(50,50), 10)
+g2 <- graph.adjacency(m2$adjacency, mode="undirected")
+plot(g2, layout = layout.auto(g2) )
+ 
+ 
+m3 <- mapper(dist(X), f, c(3,3,3), c(30,30,30), 5)
+g3 <- graph.adjacency(m3$adjacency, mode="undirected")
+plot(g3, layout = layout.auto(g3) )
+tkplot(g3)
+
+
+
+#m1
+#names(m1)
+#str(m1)
+#m1$points_in_level_set
+```
+
+# interactive plot
+
+```{r}
+library(networkD3)
+mapperVertices <- function(m, pt_labels) {
+
+    # Hovering over vertices gives the point labels:
+    # convert the list of vectors of point indices to a list of vectors of labels
+    labels_in_vertex <- lapply( m$points_in_vertex, FUN=function(v){ pt_labels[v] } )
+    nodename <- sapply( sapply(labels_in_vertex, as.character), paste0, collapse=", ")
+    nodename <- paste0("V", 1:m$num_vertices, ": ", nodename )
+    
+    # Hovering over vertices gives the point indices:
+    # list the points in each vertex
+    # nodename <- sapply( sapply(m$points_in_vertex, as.character), paste0, collapse=", ")
+    # concatenate the vertex number with the labels for the points in each vertex
+    #nodename <- paste0("V", 1:m$num_vertices, ": ", nodename )
+    
+    nodegroup <- m$level_of_vertex
+    nodesize <- sapply(m$points_in_vertex, length)
+    
+    return(data.frame( Nodename=nodename, 
+                       Nodegroup=nodegroup, 
+                       Nodesize=nodesize ))
+    
+}
+
+mapperEdges <- function(m) {
+    linksource <- c()
+    linktarget <- c()
+    linkvalue <- c()
+    k <- 1
+    for (i in 2:m$num_vertices) {
+        for (j in 1:(i-1)) {
+            if (m$adjacency[i,j] == 1) {
+                linksource[k] <- i-1
+                linktarget[k] <- j-1
+                linkvalue[k] <- 2
+                k <- k+1
+            }
+        }
+    }
+    return( data.frame( Linksource=linksource,
+                        Linktarget=linktarget, 
+                        Linkvalue=linkvalue ) )
+    
+}
+
+# create data frames for vertices and edges with the right variable names 
+MapperNodes <- mapperVertices(m3, 1:dim(f)[1] )
+MapperLinks <- mapperEdges(m3)
+
+# interactive plot
+forceNetwork(Nodes = MapperNodes, Links = MapperLinks, 
+            Source = "Linksource", Target = "Linktarget",
+            Value = "Linkvalue", NodeID = "Nodename",
+            Group = "Nodegroup", opacity = 0.8, 
+            linkDistance = 10, charge = -400)
+
+```
+
+
+# dist and timing matrix subsetting
+```{r}
+# From the dist documentation:
+# If d is an n x n distance matrix, the 
+# distance between row i and row j (for i < j <= n) is
+# has index = n*(i-1) - i*(i-1)/2 + j-i 
+# in the vector as.dist(d)
+#matrix_indexing_to_dist_indexing <- function(i,j,n) {
+m2d <- function(i,j,n) {
+    return( n*(i-1) - i*(i-1)/2 + j-i )   
+}
+
+# set.seed("1")
+# n <- 6
+# df <- data.frame( x = rnorm(n,0,1), y = rnorm(n,0,1) )
+# a <- dist(df)
+# class(a)
+# str(a)
+
+# m2d(1, 2:6, 6)
+# m2d(2, 3:6, 6)
+# m2d(3, 4:6, 6)
+# m2d(4, 5:6, 6)
+# m2d(5, 6, 6)
+
+# m2d(1, 2:3, 6)
+# 
+# m2d(2, 3, 6)
+# 
+# c( m2d(1,2,6), m2d(1,3,6), m2d(2,3,6) )
+# a[ c( m2d(1,2,6), m2d(1,3,6), m2d(2,3,6) ) ]
+# 
+# a[1:3]
+# 
+# b <- as.matrix( a )
+# class(b)
+# str(b)
+# 
+# b[1:3,1:3]
+# as.dist(b[1:3,1:3])
+# 
+# a
+# b
+
+m2d_rows1 <- function(m_ind,n) {
+    # m_ind = c(i_1, ..., i_k) = a vector of indices for k rows of the distance matrix
+    # n = number of observations = number of rows in n x n distance matrix
+    m_ind <- sort(m_ind) # make sure the vector is sorted!
+    k <- length(m_ind)
+    d_ind <- c() # dist object indices
+    for (i in 2:k) {
+        d_ind <- c(d_ind, m2d(m_ind[i-1], m_ind[i:k], n) )
+    }
+    return(d_ind)
+}
+
+m2d_rows2 <- function(m_ind,n) {
+    # m_ind = c(i_1, ..., i_k) = a vector of indices for k rows of the distance matrix
+    # n = number of observations = number of rows in n x n distance matrix
+    m_ind <- sort(m_ind) # make sure the vector is sorted!
+    k <- length(m_ind)
+    d_ind <- rep(NA, k*(k-1)/2 ) # dist object indices
+    for (i in 2:k) {
+        d_ind <- c(d_ind, m2d(m_ind[i-1], m_ind[i:k], n) )
+    }
+    return(na.omit(d_ind))
+}
+
+m2d_rows1(1:3,6)
+m2d_rows2(1:3,6)
+
+set.seed("1")
+n <- 1000 # sample size
+s <- 100 # subset size
+m_ind <- sample(1:n, s, replace=F) # indices of s matrix rows from among the n rows
+df <- data.frame(x=rnorm(n,0,1), y=rnorm(n,0,1))
+d <- dist(df)
+#m_ind <- 20*(1:50)
+# m_ind <- 100*(1:5)
+# as.dist(as.matrix( d )[m_ind,m_ind])
+# d[m2d_rows(m_ind,1000)]
+
+
+
+# library(microbenchmark)
+# 
+# op <- microbenchmark(
+#     OLD=as.dist(as.matrix( d )[m_ind,m_ind]),
+#     NEW1=d[m2d_rows1(m_ind,n)],
+#     NEW2=d[m2d_rows2(m_ind,n)],
+# times=100L)
+# 
+# print(op) #standard data frame of the output
+# boxplot(op) #boxplot of output
+# library(ggplot2) #nice log plot of the output
+# qplot(y=time, data=op, colour=expr) + scale_y_log10()
+
+# results of the microbenchmark suggest that with n=1000 points, 
+# the fastest method for a subset of fewer than 500 points is the
+# function NEW1, while for more than 500 points the fastest method
+# is OLD.
+
+dist_subset <- function(dist_vector, point_indices) {
+    # inputs:
+    # dist_vector = distance vector from dist(X) on the whole data set X
+    # point_indices = a vector of indices for points in the subset of X
+    # output:
+    # a subset of the dist_vector consisting of only those entries relevant
+    # for pairwise distances between the points indexed by point_indices
+    
+    numpoints <- (1 + sqrt(1+8*length(dist_vector)))/2
+    
+    if (length(point_indices) < 500) {
+        
+        m2d_rows1 <- function(m_ind,n) {
+            # m_ind = c(i_1, ..., i_k) = a vector of indices for matrix rows
+            # for k rows of the distance matrix
+            # n = number of observations = number of rows in distance matrix
+            m_ind <- sort(m_ind) # make sure the vector is sorted!
+            k <- length(m_ind)
+            d_ind <- c() # dist object indices
+            for (i in 2:k) {
+                d_ind <- c(d_ind, m2d(m_ind[i-1], m_ind[i:k], n) )
+            }
+            return(d_ind)
+        }
+
+        dist_vector[m2d_rows1(point_indices,numpoints)]
+        
+    } else {
+        
+        return( as.dist(as.matrix( dist_vector )[matrix_indices,matrix_indices]) )
+        
+    }
+    
+}
+```
