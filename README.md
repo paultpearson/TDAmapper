@@ -94,6 +94,8 @@ To install from Github you might need:
 
 # Example 4: Interactive 2D graphs using tkplot from igraph
 
+As of July 2015, this example and the next example will only work if you have installed TDAmapper from the github repository.  It should be bug free, but is still undergoing testing.
+
     # parametrize a trefoil knot
     n <- 100
     t <- 2*pi*(1:n)/n
