@@ -102,6 +102,7 @@ mapper2D <- function(
 
     if (num_points_in_level == 0) {
       print('Level set is empty')
+	  vertices_in_level[[level]] <- -1 #  Bertrand Michel's suggestion for empty levels: use flag -1
       next
     }
 
@@ -109,7 +110,8 @@ mapper2D <- function(
       print('Level set has only one point')
       num_vertices_in_level <- 1
       cluster_indices_within_level <- c(1)
-    }
+	  vertices_in_level[[level]] <- vertex_index + (1:num_vertices_in_level)
+	}
 
     if (num_points_in_level > 1) {
       # use as.matrix() to put the distance matrix in square form,
@@ -127,6 +129,8 @@ mapper2D <- function(
       cluster_indices_within_level <- as.vector( cutree(level_hcluster_ouput, h=cutoff) )
       num_vertices_in_level <- max( cluster_indices_within_level )
 
+	  vertices_in_level[[level]] <- vertex_index + (1:num_vertices_in_level)
+
       # points_in_level[[level]] and cluster_indices_within_level have the same length.
       # heights has length 1 less than points_in_level[[level]] and cluster_indices_within_level
       # print(heights)
@@ -134,7 +138,6 @@ mapper2D <- function(
       # print(cluster_indices_within_level)
     }
 
-    vertices_in_level[[level]] <- vertex_index + (1:num_vertices_in_level)
 
     for (j in 1:num_vertices_in_level) {
 
@@ -165,7 +168,7 @@ mapper2D <- function(
       k2 <- which( (level_indices_1 == i) & (level_indices_2 == j-1))
 
       # check that both level sets are nonemtpy
-      if ( (length(vertices_in_level[[k1]]) > 0) & (length(vertices_in_level[[k2]]) > 0) ) {
+	  if ( (vertices_in_level[[k1]][1] != -1) & (vertices_in_level[[k2]][1] != -1) ) {
 
         for (v1 in vertices_in_level[[k1]]) {
           for (v2 in vertices_in_level[[k2]]) {
@@ -187,7 +190,7 @@ mapper2D <- function(
       k2 <- which( (level_indices_1 == i-1) & (level_indices_2 == j))
 
       # check that both level sets are nonemtpy
-      if ( (length(vertices_in_level[[k1]]) > 0) & (length(vertices_in_level[[k2]]) > 0) ) {
+	  if ( (vertices_in_level[[k1]][1] != -1) & (vertices_in_level[[k2]][1] != -1) ) {
 
         for (v1 in vertices_in_level[[k1]]) {
           for (v2 in vertices_in_level[[k2]]) {
