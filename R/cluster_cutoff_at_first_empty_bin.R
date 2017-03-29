@@ -25,6 +25,8 @@ cluster_cutoff_at_first_empty_bin <- function(heights, diam, num_bins_when_clust
   
   bin_breaks <- seq(from=min(heights), to=diam, 
                     by=(diam - min(heights))/num_bins_when_clustering)
+  if (length(bin_breaks) == 1) { bin_breaks <- 1 }
+
   myhist <- hist(c(heights,diam), breaks=bin_breaks, plot=FALSE)
   z <- (myhist$counts == 0)
   if (sum(z) == 0) {
