@@ -1,0 +1,238 @@
+---
+title: 'TDAmapper: Additions'
+author: "Matt Piekenbrock"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Overview of Pull Request 
+
+The [Python Mapper library by Dan Mullner](http://danifold.net/mapper/) is great, and takes a traditional Pythonic approach to implementing Mapper, i.e. the OOP approach. OOP is divided in R, as most of R is focused on functional-style programming, and in many ways is quite different from Python. Nonetheless, OOP provides some very real benefits in terms of extensibility and abstraction: in the context of the Python Mapper library, inheritance and polymorphism allows the library the flexibility of configuring how the Mapper construction is generated, including the types of covers to use, the clustering algorithm to use, etc. Additionally, having a Mapper object that can be updated by reference (via heavily coupled OOP programming strategies) enables increases in performance and efficiency of computation. 
+
+There are [several ways of doing OOP in R](https://stackoverflow.com/questions/9521651/r-and-object-oriented-programming); the community is quite divided, adn their popularity, benefits, and use-cases vary quite a bit. I rewrote the Mapper pipeline with [R Reference Classes (R5)](https://stat.ethz.ch/R-manual/R-devel/library/methods/html/refClass.html) since they're quite easy and elegant to use. 
+
+That being said, R users (myself included) are used to functional-style programming, and I don't think it's a good idea to go away from that, especially considering the simplicity of functional-style programming. So instead, I added the `mapper_new` (temporary) function as an illustration of how the TDAmapper package can benefit from both styles. Basically, the new version of this package offers (still) functional wrapper functions to doing high-level calls to generating the Mapper constructions (which maintain backwards compatibility), but internally they make use of reference classes. This allows more advanced users which may want to do more with Mapper the option of working with, changing, and contributing augmentations to the Mapper pipeline (like myself) without having to do things like copy and pasting exorbitant lines of code.  
+
+## Examples using the reference class 
+
+Below is an example of using Mapper to describe a noisy circle, as from Example 3.2 in the original paper by  Singh, Carlsson, et. al. 
+```{r}
+library("TDAmapper")
+## X in this case is 2-d noisy points around the perimeter of a circle 
+n <- 1000
+t <- 2*pi*runif(n); u <- runif(n, min = 2, max = 2.1) + runif(n,  min = 2, max = 2.1)
+r <- ifelse(u > 1, 2 - u, u) 
+X <- cbind(r*cos(t), r*sin(t))
+
+## The filter function is simply the distance from each point to the left-most point in the x-dimension
+min_idx <- which.min(X[, 1])
+f_x <- abs(X[, 1] - X[min_idx, 1])
+```
+
+```{r}
+## Plot the circle 
+rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
+f_x <- abs(X[, 1] - X[min_idx, 1])
+binned_idx <- cut(f_x, breaks = 100, labels = F)
+plot(X, pch = 20, asp = 1, col = rbw_pal[binned_idx])
+```
+
+
+Using the new internal Mapper reference class, the Mapper algorithm can be configured at each step. This abstraction allows more customization i.e. a diffferent clustering algorithm may be used, a different type of cover may be constructed, the full simplicial complex may be computed, etc.
+
+```{r}
+Z <- array(f_x, dim = c(length(f_x), 1L)) ## filter values
+m <- TDAmapper:::mapper_ref$new(X = X) ## construct the instance
+m$setCover(fv = Z, k = 5L, g = 0.2) ## k == number of intervals, g == overlap; only rectangular cover supported for now
+m$setClusteringAlgorithm(cl = "single") # use single-linkage; can also use other linkages, or supply your own clustering function
+m$computeNodes(num_bins_when_clustering = 10) # parameters to clustering algorithm are passed to computeNodes 
+m$computeEdges() # in future will be able to choose between 1-skeleton and full simplicial complex
+```
+
+Internally, various libraries may be used for nice plotting defaults. Here's an example which mimicks Figure 1 of the original paper using the `network` package. Node sizes are weighted logarithmically in relation to the number points in each node, and the color is chosen based on a linear scale between red and blue based on the average set of filter values for all the points in each node.  
+```{r}
+m$plotNetwork()
+```
+
+The above code used the point cloud data (X) directly (assumed euclidean distance) in the clustering process. An arbitrary 'dist' object may also be used.  
+
+```{r}
+m2 <- TDAmapper:::mapper_ref$new(X = dist(X)) ## construct the instance
+m2$setCover(fv = Z, k = 5L, g = 0.2) ## k == number of intervals, g == overlap; only rectangular cover supported for now
+m2$setClusteringAlgorithm(cl = "single") # use single-linkage; can also use other linkages, or supply your own clustering function
+m2$computeNodes(num_bins_when_clustering = 10) # parameters to clustering algorithm are passed to computeNodes 
+m2$computeEdges() # in future will be able to choose between 1-skeleton and full simplicial complex
+m2$plotNetwork()
+```
+
+The same structure produced with the mapper1D function: 
+```{r}
+library("igraph")
+m_orig <- TDAmapper::mapper1D(distance_matrix = dist(X), 
+                              filter_values = Z, 
+                              num_intervals = 5L,
+                              percent_overlap = 20, 
+                              num_bins_when_clustering = 10)
+g1 <- graph.adjacency(m_orig$adjacency, mode="undirected")
+plot(g1, layout = layout.auto(g1) )
+```
+
+## TDAmapper equivalency
+Rather than use the reference class directly, instead I wrapped the above procedure into a functinal wrapper `mapper_new` function to replace the current `mapper` call. It's just named `mapper_new` right now to illustrate the differences. Compared to the `mapper1D` and `mapper2D` functions, the new API produces the same construction. 
+
+Consider the previous 1-D example with the new function, using the exact same named parameter settings. The new function as documented uses 'X' instead of 'distance_matrix' for input, although it is backwards compatible (w/ a warning. 
+```{r}
+m_new <- TDAmapper::mapper_new(distance_matrix = dist(X), 
+                                filter_values = Z, 
+                                num_intervals = 5L,
+                                percent_overlap = 20, 
+                                num_bins_when_clustering = 10)
+```
+
+Of course, they are equivalent in every aspect. 
+```{r}
+all.equal(m_new, m_orig)
+```
+
+The same applies to the Mapper 2D function. Here's the 2-D example from the github using an oval. 
+```{r}
+X <- dist(data.frame( x=2*cos(1:100), y=sin(1:100) ))
+Z <- as.matrix(data.frame(x=2*cos(1:100), y=sin(1:100)))
+
+m2_orig <- mapper2D(distance_matrix = X,
+              filter_values = list( Z[,1], Z[,2] ),
+              num_intervals = c(5,5),
+              percent_overlap = 50,
+              num_bins_when_clustering = 10)
+m2_new <- mapper_new(X = X,
+              filter_values = list( Z[,1], Z[,2] ),
+              num_intervals = c(5,5),
+              percent_overlap = 50,
+              num_bins_when_clustering = 10)
+all.equal(m2_orig, m2_new)
+```
+
+## Benefits: Extensibility and Abstraction
+
+### Performance Comparison 
+Consider example 2 from the github, identifying an oval.
+```{r}
+n <- 1000L
+
+## Example 2: Identifying oval 
+X <- data.frame(x=2*cos(1:n), y=sin(1:n))
+Z <- as.matrix(data.frame(x=2*cos(1:n), y=sin(1:n)))
+dis_X <- dist(X)
+
+## Original 2D version 
+original <- function(){
+  mapper2D(distance_matrix = dis_X,
+            	filter_values = list( Z[,1], Z[,2] ),
+            	num_intervals = c(5,5),
+            	percent_overlap = 50,
+            	num_bins_when_clustering = 10)
+}
+
+## New version (w/ same parameters)
+new <- function(...){
+  mapper_new(X = dis_X, filter_values = Z, num_intervals = c(5,5), percent_overlap = 50, num_bins_when_clustering = 10, ...)
+}
+
+## There are benefits to not computing all pairwise distances
+x_mat <- as.matrix(X)
+new_wo_dis <- function(...){
+  mapper_new(X = x_mat, filter_values = Z, num_intervals = c(5,5), percent_overlap = 50, num_bins_when_clustering = 10, ...)
+}
+
+```
+
+The construction of the level sets in the cover and the construction of the edges (including the non-empty intersection check) have been rewritten and optimized in C++. As a result, using the same parameters betwene the two functions, the performance is quite different. 
+```{r}
+print(microbenchmark::microbenchmark(original(), times = 15L))
+print(microbenchmark::microbenchmark(new(), times = 15L))
+print(microbenchmark::microbenchmark(new_wo_dis(), times = 15L))
+```
+The Rcpp/C++ improvements to the computationally difficult portions Mapper (mostly related to the cover) result in roughly an order of magnitude faster performance in this case. The C++ backend also make TDAmapper is also  _scalable_. Consider the exact same problem, but with a higher resolution / more level sets. 
+
+```{r}
+## Original 2D version 
+original <- function(){
+  mapper2D(distance_matrix = dis_X,
+            	filter_values = list( Z[,1], Z[,2] ),
+            	num_intervals = c(10,10),
+            	percent_overlap = 50,
+            	num_bins_when_clustering = 10)
+}
+
+## New version 
+new <- function(...){
+  mapper_new(X = dis_X, filter_values = Z, num_intervals = c(10,10), percent_overlap = 50, num_bins_when_clustering = 10, ...)
+}
+```
+
+They seem to scale similarly. In this case, the new backend returns the result at roughly 43x time the speed. 
+
+```{r}
+print(microbenchmark::microbenchmark(original(), times = 15L))
+print(microbenchmark::microbenchmark(new(), times = 15L))
+```
+
+## Differences
+### Between Mapper2D and mapper_new
+For large enough data size, there's a small discrepancy in the edge formation of the Mapper 2D code. I think it's in the way the looping structure is performed. Consider the following:
+```{r}
+## Slight discrepancy 
+t1 <- original(); t2 <- new()
+all.equal(original(), new()) ## Everything is same except for adjacency: ""Component adjacency" : Mean absolute difference: 1"
+which(t1$adjacency[1, ] == 1) ## 2 11 
+which(t2$adjacency[1, ] == 1) ## 2 11 12
+any(t1$points_in_vertex[[2]] %in% t1$points_in_vertex[[11]]) ## TRUE - Theres should be edge between nodes 2 and 11
+any(t1$points_in_vertex[[2]] %in% t1$points_in_vertex[[12]]) ## TRUE - Theres should also be edge between nodes 2 and 12
+```
+
+There should be a an edge between nodes 2 and 11, and 2 and 12, as they have non-empty intersections. 
+
+### Between mapper and mapper_new
+The $n$-dimensional experimental version of `mapper` produces different results that the new version. It seems that it handles the interval length computation is handled a bit differently in `mapper` than in the Python Mapper library. 
+
+The `mapper_new` function handles 3-space, or $n$-space, in the covering in the same way it handles the 1-d or 2-d versions. The new code was written carefully such that it is actually the same for every dimension; that is, `mapper_new` may be called for any dimension filter space, without the need for multiple loops, dimension-specific conditions, etc. 
+
+Consider the trefoil knot used in Example 5 from the repository. 
+```{r}
+# parametrize a trefoil knot
+n <- 100
+t <- 2*pi*(1:n)/n
+X <- data.frame(x = sin(t)+2*sin(2*t),
+                y = cos(t)-2*cos(2*t),
+                z = -sin(3*t))
+f <- X
+m4 <- mapper(dist(X), f[,1], 5, 50, 5)
+g4 <- graph.adjacency(m4$adjacency, mode="undirected")
+plot(g4, layout = layout.auto(g4) )
+```
+
+The `return_reference` parameter allows the user to get access to the internal reference class used to construct the Mapper instance. 
+```{r}
+m4_new <- mapper_new(dist(X), f[,1], 5, 50, 5, return_reference = TRUE)
+```
+
+You can always get back to the original `TDAmapper` class via exporting 
+```{r}
+m4_new_tdamapper <- m4_new$exportTDAmapper()
+```
+
+Of course, the plan is to enable multiple different modes of exporting the internal structure information in the future, whether it be via the igraph package, network package, networkD3 package, html widgets, etc. 
+
+Again, the cover is constructed differently in the `mapper` function compared to the `mapper1D`, `mapper2D`, and `mapper_new` functions, so the results are a bit different, although the structure visually is identical: 
+```{r}
+all.equal(m4, m4_new_tdamapper)
+```
+
+```{r}
+layout(matrix(c(0, 1), nrow = 1))
+g4 <- graph.adjacency(m4$adjacency, mode="undirected")
+plot(g4, layout = layout.auto(g4) )
+m4_new$plotNetwork()
+```
+

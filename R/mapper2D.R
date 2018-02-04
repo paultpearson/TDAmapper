@@ -101,13 +101,13 @@ mapper2D <- function(
     points_in_level[[level]] <- which(points_in_level_logical==TRUE)
 
     if (num_points_in_level == 0) {
-      print('Level set is empty')
+      # print('Level set is empty')
 	  vertices_in_level[[level]] <- -1 #  Bertrand Michel's suggestion for empty levels: use flag -1
       next
     }
 
     if (num_points_in_level == 1) {
-      print('Level set has only one point')
+      # print('Level set has only one point')
       num_vertices_in_level <- 1
       cluster_indices_within_level <- c(1)
 	  vertices_in_level[[level]] <- vertex_index + (1:num_vertices_in_level)
