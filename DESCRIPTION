@@ -24,3 +24,6 @@ License: GPL-3
 LazyData: true
 URL: https://github.com/paultpearson/TDAmapper/
 BugReports: https://github.com/paultpearson/TDAmapper/issues
+LinkingTo: Rcpp
+Imports: Rcpp
+RoxygenNote: 6.0.1

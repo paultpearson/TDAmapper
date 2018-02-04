@@ -30,8 +30,12 @@
 #' g1 <- graph.adjacency(m1$adjacency, mode="undirected")
 #' plot(g1, layout = layout.auto(g1) )
 #' }
+#' 
+#' @useDynLib TDAmapper
+#' @importFrom Rcpp sourceCpp
+#' 
 #' @export
-#'
+#' 
 
 
 mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, num_bins_when_clustering) {
@@ -79,7 +83,6 @@ mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, n
     filter_min <- as.vector(sapply(filter_values,min))
     filter_max <- as.vector(sapply(filter_values,max))
     interval_width <- (filter_max - filter_min) / num_intervals
-    
     
     # initialize variables    
     vertex_index <- 0
@@ -172,7 +175,7 @@ mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, n
             # cut the cluster tree
             # internal indices refers to 1:num_points_in_this_level
             # external indices refers to the row number of the original data point
-            level_cutoff   <- cluster_cutoff_at_first_empty_bin(level_heights, level_max_dist, num_bins_when_clustering)
+            level_cutoff <- cluster_cutoff_at_first_empty_bin(level_heights, level_max_dist, num_bins_when_clustering)
             level_external_indices <- points_in_this_level[level_hclust$order]
             level_internal_indices <- as.vector(cutree(list(
                 merge = level_hclust$merge, 

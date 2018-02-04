@@ -1,0 +1,10 @@
+m <- TDAmapper:::mapper_ref$new(X = dist(X))
+m$setCover(fv = f[,1], k = 5L, g = 0.50)
+m$setClusteringAlgorithm(cl = "single")
+m$computeNodes(num_bins_when_clustering = 5L)
+m$computeEdges()
+m$plotNetwork()
+
+m_orig <- mapper1D(dist(X), f[,1], 5, 50, 5)
+m_new <-  m$exportTDAmapper()
+all.equal(m_orig, m_new)
