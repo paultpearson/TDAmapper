@@ -8,6 +8,8 @@
 #' @param percent_overlap A number between 0 and 100 specifying how much adjacent intervals should overlap.
 #' @param num_bins_when_clustering A positive integer that controls whether points in the same level set end up in the same cluster.
 #'
+#' @importFrom stats as.dist cutree dist hclust
+#'
 #' @return An object of class \code{TDAmapper} which is a list of items named \code{adjacency} (adjacency matrix for the edges), \code{num_vertices} (integer number of vertices), \code{level_of_vertex} (vector with \code{level_of_vertex[i]} = index of the level set for vertex i), \code{points_in_vertex} (list with \code{points_in_vertex[[i]]} = vector of indices of points in vertex i), \code{points_in_level} (list with \code{points_in_level[[i]]} = vector of indices of points in level set i, and \code{vertices_in_level} (list with \code{vertices_in_level[[i]]} = vector of indices of vertices in level set i.
 #'
 #' @author Paul Pearson, \email{pearsonp@@hope.edu}

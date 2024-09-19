@@ -6,6 +6,8 @@
 #'
 #' @param m An object of class TDAmapper that is the output of the mapper 
 #' function.
+#' @param pt_labels Point labels for vertices. Character class or coercible
+#' to character
 #'
 #' @return A data frame describing the vertices in the graph of the mapper 
 #' output and the point labels that will be displayed when the mouse 

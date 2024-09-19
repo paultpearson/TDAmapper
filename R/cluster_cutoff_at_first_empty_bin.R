@@ -5,7 +5,9 @@
 #' @param heights Height values in hierarchical clustering.
 #' @param diam Maximum distance between points in a level set.
 #' @param num_bins_when_clustering Controls how many bins there are in the histogram used to determine cutoff. values
-#' 
+#'
+#' @importFrom graphics hist
+#'
 #' @return Numerical value for cutoff point of hierarchical cluster diagram.
 #'
 #' @author Paul Pearson, \email{pearsonp@@hope.edu}

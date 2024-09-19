@@ -1,14 +1,6 @@
 Package: TDAmapper
-Title: Analyze High-Dimensional Data Using Discrete Morse Theory
-Version: 1.0
-Date: 2015-05-26
-Authors@R: c(person("Paul", "Pearson", email = "pearsonp@hope.edu", 
-    role = c("aut", "cre","trl")), person("Daniel", "Muellner", 
-    role = c("aut","ctb")), person("Gurjeet","Singh", role = c("aut","ctb")))
-Author: Paul Pearson [aut, cre, trl],
-    Daniel Muellner [aut, ctb],
-	Gurjeet Singh [aut, ctb]
-Maintainer: Paul Pearson <pearsonp@hope.edu>
+Version: 1.1
+License: GPL-3
 Description: Topological Data Analysis using Mapper (discrete Morse theory).
     Generate a 1-dimensional simplicial complex from a filter 
     function defined on the data:  1. Define a filter function (lens) on the 
@@ -18,9 +10,16 @@ Description: Topological Data Analysis using Mapper (discrete Morse theory).
     between vertices.  The function mapper1D uses a filter function with
     codomain R, while the the function mapper2D uses a filter function with
     codomain R^2.
+Title: Analyze High-Dimensional Data Using Discrete Morse Theory
+Date: 2024-09-24
+Authors@R: c(person("Paul", "Pearson", email = "pearsonp@hope.edu", role = c("aut", "cre", "trl", "cph")),
+             person("Daniel", "Muellner", role = c("aut","ctb")),
+             person("Gurjeet","Singh", role = c("aut","ctb")),
+             person("Iago", "Giné-Vázquez", role = "ctb", email = "iago.gin-vaz@protonmail.com", comment = c(ORCID = "0000-0002-6725-2638")))
 Depends: R (>= 3.1.2)
-Suggests: fastcluster, igraph
-License: GPL-3
-LazyData: true
+Suggests: fastcluster, igraph, networkD3, knitr
 URL: https://github.com/paultpearson/TDAmapper/
 BugReports: https://github.com/paultpearson/TDAmapper/issues
+VignetteBuilder: knitr
+Encoding: UTF-8
+RoxygenNote: 7.3.2

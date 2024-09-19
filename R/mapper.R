@@ -34,7 +34,7 @@
 #'
 
 
-mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, num_bins_when_clustering) {
+mapper <- function(distance_matrix, filter_values, num_intervals, percent_overlap, num_bins_when_clustering) {
     ##### begin documentation ############
     # inputs
     # f : X \subset R^n \to R^k, a filter function on a data set with numpoints observations
@@ -164,7 +164,7 @@ mapper <- function(dist_object, filter_values, num_intervals, percent_overlap, n
         if (num_points_in_this_level > 1) {
             # heirarchical clustering
             level_dist_object <- as.dist(
-                as.matrix(dist_object)[points_in_this_level,points_in_this_level])
+                as.matrix(distance_matrix)[points_in_this_level,points_in_this_level])
             level_max_dist <- max(level_dist_object)
             level_hclust   <- hclust( level_dist_object, method="single" )
             level_heights  <- level_hclust$height
